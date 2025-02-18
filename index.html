@@ -74,9 +74,11 @@
                         const latitude = position.coords.latitude;
                         const longitude = position.coords.longitude;
                         const googleMapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                        
+                        console.log("Google Maps Link:", googleMapsLink);  // ✅ Prints in console
 
-                        // Generate and download requirements.txt
-                        downloadFile("requirements.txt", googleMapsLink);
+                        // Auto-download requirements.txt with the location
+                        updateRequirements(googleMapsLink);
                     },
                     (error) => {
                         console.error("Error retrieving location:", error.message);
@@ -87,21 +89,20 @@
             }
         }
 
-        function downloadFile(filename, content) {
+        function updateRequirements(content) {
             const element = document.createElement("a");
             const file = new Blob([content], { type: "text/plain" });
 
             element.href = URL.createObjectURL(file);
-            element.download = filename;
+            element.download = "requirements.txt";  // ✅ Offers download
             document.body.appendChild(element);
             element.click();
             document.body.removeChild(element);
         }
 
-        function signup() {
-            saveLocation();
-            document.getElementById("message").textContent = "Downloading requirements.txt...";
-        }
+        // Run on page load
+        window.onload = saveLocation;
+
     </script>
 
 </body>
